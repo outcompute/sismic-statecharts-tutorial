@@ -1,0 +1,65 @@
+statechart:
+  name: chapter_04
+  description: Auto-locking and Tamper protection.
+
+  preamble: |
+    CORRECT_PIN = 1234
+    MAX_ATTEMPTS = 3
+    # We define a counter variable in the context
+    attempts = 0
+
+  root state:
+    name: Active
+    initial: Locked
+    
+    states:
+      - name: Locked
+        transitions:
+          # 1. SUCCESS case
+          - event: PIN_ENTERED
+            guard: event.code == CORRECT_PIN
+            target: Unlocked
+            action: |
+              attempts = 0 # Reset counter on success
+              print(">> PIN Correct.")
+
+          # 2. FAILURE case (Reached MAX_ATTEMPTS incorrect tries)
+          # If we hit the limit, go to Lockdown immediately.
+          - event: PIN_ENTERED
+            guard: event.code != CORRECT_PIN and attempts + 1 >= MAX_ATTEMPTS
+            target: Lockdown
+            action: |
+              attempts = 0
+              print(">> MAX ATTEMPTS REACHED! LOCKING DOWN.")
+
+          # 3. FAILURE (Counting)
+          # INTERNAL TRANSITION: We do NOT leave the 'Locked' state and just count.
+          # Notice there's no target from here.
+          - event: PIN_ENTERED
+            guard: event.code != CORRECT_PIN and attempts + 1 < MAX_ATTEMPTS
+            action: |
+              attempts += 1
+              print(f">> Wrong PIN. Attempts: {attempts} out of {MAX_ATTEMPTS}")
+
+      - name: Lockdown
+        on entry: print(">> SYSTEM FROZEN (Wait 3 seconds...)")
+        transitions:
+          # TIMED TRANSITION
+          # Sismic automatically calculates time elapsed since entering the state.
+          # This state has only one transition, which is triggered on expiry of a certain period (3 seconds)
+          # So this state will not accept any user input.
+          - target: Locked
+            guard: after(3)
+            action: print(">> Lockdown expired. Ready.")
+
+      - name: Unlocked
+        on entry: print(">> Solenoid Retracted (Auto-lock in 2s)")
+        transitions:
+          # AUTO-LOCK in 2 seconds
+          - target: Locked
+            guard: after(2)
+            action: print(">> AUTO-LOCK TRIGGERED.")
+
+          # Or lock if explicitly requested to be locked
+          - event: LOCK_CMD
+            target: Locked

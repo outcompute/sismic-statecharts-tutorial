@@ -1,0 +1,26 @@
+statechart:
+  name: charger_ch8
+  
+  root state:
+    name: ChargerBase
+    initial: Idle
+    
+    states:
+      - name: Idle
+        transitions:
+          - event: BATTERY_LOW
+            target: Charging
+            action: |
+              print(">> [Charger] Distress signal received. Engaging...")
+              send('CHARGE_STARTED')
+
+      - name: Charging
+        on entry: |
+          print(">> [Charger] Charging in progress...")
+        transitions:
+          - guard: after(5)
+            target: Idle
+            # REPLY: Tell the vault we are done
+            action: |
+              print(">> [Charger] 100% Charged. Disengaging.")
+              send('CHARGE_COMPLETE')

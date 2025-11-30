@@ -1,0 +1,61 @@
+statechart:
+  name: chapter_06
+  description: Robust vault with Design by Contract.
+
+  preamble: |
+    CORRECT_PIN = 1234
+    MAX_ATTEMPTS = 3
+    attempts = 0
+
+  root state:
+    name: Active
+    initial: Locked
+
+    states:
+      - name: Locked
+        contract:
+          # INVARIANT: Tested after every single step in this state.
+          # If this ever evaluates to False, Sismic raises a ContractError.
+          - always: attempts < MAX_ATTEMPTS
+
+        transitions:
+          # 1. Standard Success
+          - event: PIN_ENTERED
+            guard: event.code == CORRECT_PIN
+            target: Unlocked
+            action: attempts = 0
+
+          # 2. Standard Failure (Correct Logic)
+          # If attempts reaches limit, we LEAVE Locked (satisfying the invariant).
+          - event: PIN_ENTERED
+            guard: event.code != CORRECT_PIN and attempts + 1 >= MAX_ATTEMPTS
+            target: Lockdown
+            action: attempts = 0
+
+          # 3. Standard Failure (Counting)
+          - event: PIN_ENTERED
+            guard: event.code != CORRECT_PIN and attempts + 1 < MAX_ATTEMPTS
+            action: attempts += 1
+
+          # 4. THE BUG (Developer Backdoor)
+          # This transition increments attempts but FORGETS to check the limit.
+          # It stays in 'Locked'.
+          # If we use this 3 times, 'attempts' becomes 3.
+          # We are still in 'Locked'.
+          # Invariant 'attempts < 3' becomes FALSE.
+          # BOOM! ContractError.
+          - event: DEV_TEST_FAIL
+            action: |
+              print(">> [Dev] Simulating a failure...")
+              attempts += 1
+
+      - name: Lockdown
+        transitions:
+           - target: Locked
+             guard: after(3)
+             action: attempts = 0
+
+      - name: Unlocked
+        transitions:
+          - target: Locked
+            guard: after(2)

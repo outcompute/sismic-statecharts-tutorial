@@ -1,0 +1,62 @@
+statechart:
+  name: chapter_07
+  description: The complete Smart Vault system for testing/visualization.
+
+  preamble: |
+    CORRECT_PIN = 1234
+    
+  root state:
+    name: VaultSystem
+    initial: Active
+    
+    # Global Interrupt
+    transitions:
+      - event: MASTER_RESET
+        target: Maintenance
+
+    states:
+      # PARALLEL PARENT
+      - name: Active
+        parallel states:
+          
+          # REGION 1: SECURITY
+          - name: SecurityRegion
+            initial: Locked
+            states:
+              - name: Locked
+                transitions:
+                  - event: PIN_ENTERED
+                    guard: event.code == CORRECT_PIN
+                    target: Unlocked
+                  - event: PIN_ENTERED
+                    guard: event.code != CORRECT_PIN
+                    # Internal transition (no target)
+                    action: print(">> Wrong PIN")
+
+              - name: Unlocked
+                transitions:
+                  - target: Locked
+                    guard: after(2)
+
+          # REGION 2: POWER
+          - name: PowerRegion
+            initial: FullBattery
+            states:
+              - name: FullBattery
+                transitions:
+                  - target: LowBattery
+                    guard: after(4)
+
+              - name: LowBattery
+                transitions:
+                  - target: DeadBattery
+                    guard: after(4)
+
+              - name: DeadBattery
+                on entry: print(">> SYSTEM SHUTDOWN")
+
+      # MAINTENANCE
+      - name: Maintenance
+        transitions:
+          - event: REBOOT
+            target: Active

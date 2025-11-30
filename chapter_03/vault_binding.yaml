@@ -1,0 +1,44 @@
+statechart:
+  name: chapter_03
+  description: Controlling external Python objects (Hardware Layer).
+
+  preamble: |
+    # We don't need to define logic here anymore!
+    # We just define simple constants.
+    CORRECT_PIN = 9999
+    # We will access 'hw' later which is not present in preamble
+    # because we will inject it from Python later.
+
+  root state:
+    name: Active
+    initial: Locked
+
+    states:
+      - name: Locked
+        # ON ENTRY: When we enter 'Locked', ensure the hardware is locked.
+        on entry: |
+          hw.set_led('RED')
+          hw.lock_mechanism()
+
+        transitions:
+          - event: PIN_ENTERED # If the code is entered ...
+            guard: event.code != CORRECT_PIN # ... and it is incorrect ...
+            target: Locked  # ... then, self-transition to trigger on_entry routines
+            action: |
+               hw.beep(times=3) # Beep three times ... 
+               hw.flash_led('RED') # ... and flash the LED as feedback
+
+          - event: PIN_ENTERED
+            guard: event.code == CORRECT_PIN
+            target: Unlocked
+            action: hw.beep(times=1) # No flashing LEDs here
+
+      - name: Unlocked
+        # ON ENTRY: When we enter 'Unlocked', ensure the hardware is now unlocked.
+        on entry: |
+          hw.set_led('GREEN') # The LED is GREEN to signify unlocked status ...
+          hw.unlock_mechanism() # ... and the door is unlocked
+
+        transitions:
+          - event: LOCK_CMD
+            target: Locked

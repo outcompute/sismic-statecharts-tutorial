@@ -1,0 +1,54 @@
+# --- macOS system files ---
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# --- Python bytecode / cache ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.pqi
+
+# Prevent Python from generating bytecode at all if someone forgets:
+# (Also add this to your shell env:  PYTHONDONTWRITEBYTECODE=1)
+
+# --- Virtual environments ---
+venv/
+env/
+*.venv/
+.python-env/
+
+# --- Build / packaging ---
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Python tooling ---
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- IDE / editor files ---
+# VSCode
+.vscode/
+# PyCharm / IntelliJ
+.idea/
+# Sublime
+*.sublime-project
+*.sublime-workspace
+
+# --- Logs / temp ---
+*.log
+*.tmp
+*.temp
+
+# --- Misc ---
+*.sqlite3

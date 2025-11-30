@@ -1,0 +1,50 @@
+statechart:
+  name: vault_ch8
+  preamble: |
+    CORRECT_PIN = 1234
+    
+  root state:
+    name: Vault
+    initial: Active
+    
+    states:
+      - name: Active
+        parallel states:
+          # REGION 1: Security
+          - name: Security
+            initial: Locked
+            states:
+              - name: Locked
+                transitions:
+                  - event: PIN_ENTERED
+                    guard: event.code == CORRECT_PIN
+                    target: Unlocked
+
+              - name: Unlocked
+                transitions:
+                  - target: Locked
+                    guard: after(2)
+
+          # REGION 2: Battery
+          - name: Battery
+            initial: Full
+            states:
+              - name: Full
+                transitions:
+                  # Simulate drain
+                  - target: Low
+                    guard: after(2)
+
+              - name: Low
+                # BROADCAST: Tell the world we need power
+                on entry: send('BATTERY_LOW')
+                transitions:
+                  - event: CHARGE_STARTED
+                    target: Charging
+
+              - name: Charging
+                transitions:
+                  - event: CHARGE_COMPLETE
+                    target: Full
+                    action: |
+                      print(">> [Vault] Thanks for the power!")

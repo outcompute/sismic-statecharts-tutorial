@@ -1,0 +1,91 @@
+statechart:
+  name: chapter_05
+  description: Parallel Battery and Security systems.
+
+  preamble: |
+    CORRECT_PIN = 1234
+
+  # COMPOSITE STATE (The Root)
+  # This state contains other states. It must define an 'initial' state to enter.
+  root state:
+    name: VaultSystem
+    initial: Active
+
+    # HIERARCHICAL INTERRUPT (Parent Transition)
+    # This transition belongs to the PARENT (VaultSystem).
+    # If 'MASTER_RESET' occurs, it triggers regardless of whether the system
+    # is in 'Locked', 'Unlocked', 'LowBattery', etc.
+    # It "interrupts" any active child state and forces a move to 'Maintenance'.
+    transitions:
+      - event: MASTER_RESET
+        target: Maintenance
+        action: |
+          print(">> [System] CRITICAL RESET TRIGGERED!")
+
+    states:
+      # PARALLEL STATE (Orthogonal)
+      # Instead of 'states', we use the key 'parallel states'.
+      # The system enters ALL children of this list simultaneously.
+      - name: Active
+        parallel states:
+
+          # REGION 1: Security
+          # This runs independently of Region 2.
+          - name: SecurityRegion
+            initial: Locked
+            states:
+              - name: Locked
+                transitions:
+                  - event: PIN_ENTERED
+                    guard: event.code == CORRECT_PIN
+                    target: Unlocked
+                    action: |
+                      print(">> [Security] PIN Accepted.")
+
+                  - event: PIN_ENTERED
+                    guard: event.code != CORRECT_PIN
+                    action: |
+                      print(">> [Security] Wrong PIN.")
+
+              - name: Unlocked
+                transitions:
+                  # GUARDED TIMER PATTERN
+                  # Using 'after(t)' in the guard ensures robust checking
+                  # during the interpreter's execution cycle.
+                  - target: Locked
+                    guard: after(2)
+                    action: |
+                      print(">> [Security] Auto-Lock.")
+
+          # REGION 2: Power
+          # This runs concurrently with Region 1.
+          # Events (like 'tick' or timers) are evaluated by this region too.
+          - name: PowerRegion
+            initial: FullBattery
+            states:
+              - name: FullBattery
+                transitions:
+                  - target: LowBattery
+                    guard: after(4)
+                    action: |
+                      print(">> [Power] Battery Level: LOW")
+
+              - name: LowBattery
+                transitions:
+                  - target: DeadBattery
+                    guard: after(4)
+                    action: |
+                      print(">> [Power] Battery Level: CRITICAL")
+
+              - name: DeadBattery
+                on entry: print(">> [Power] SYSTEM SHUTDOWN IMMINENT")
+
+      # SIMPLE STATE
+      # A standard state that acts as the target for the global interrupt.
+      - name: Maintenance
+        on entry: print(">> [System] Entered Maintenance Mode.")
+        transitions:
+          - event: REBOOT
+            target: Active
+            action: |
+              print(">> [System] Rebooting...")

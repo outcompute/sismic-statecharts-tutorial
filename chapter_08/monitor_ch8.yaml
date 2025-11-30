@@ -1,0 +1,24 @@
+statechart:
+  name: monitor_ch8
+  
+  root state:
+    name: Monitoring
+    initial: Safe
+    
+    states:
+      - name: Safe
+        transitions:
+          # META-EVENT LISTENER
+          # When attached as a property, this chart receives 'step' events
+          # containing info about what the monitored machine just did.
+          
+          # Logic: If we entered 'Charging', check if 'Unlocked' is also active.
+          - event: step
+            guard: |
+              'Charging' in event.entered_states and 'Unlocked' in event.configuration
+            target: HazardDetected
+            action: |
+              print("SAFETY VIOLATION: Charging while Unlocked!")
+
+      - name: HazardDetected
+        type: final

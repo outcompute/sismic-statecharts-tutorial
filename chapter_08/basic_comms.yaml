@@ -1,0 +1,22 @@
+statechart:
+  name: BroadcastStation
+  description: A simple machine to demonstrate send vs attach.
+
+  root state:
+    name: Transmission
+    initial: Idle
+
+    states:
+      - name: Idle
+        transitions:
+          - event: GO_LIVE
+            target: OnAir
+            action: print(">> [Internal] About to go LIVE...")
+
+      - name: OnAir
+        on entry: send('HELLO_WORLD')
+
+        transitions:
+          - event: STOP
+            target: Idle
+            action: send('GOODBYE')

@@ -1,0 +1,31 @@
+statechart:  # MANDATORY: The root key. Sismic looks for this to start parsing.
+  name: chapter_01  # Metadata: Name of the chart. Useful for logging and debugging.
+  description: A basic linear workflow for a safe.  # Metadata: Optional documentation.
+
+  root state:  # MANDATORY: The top-level container. All states must live inside a root.
+    name: Active  # The name of this container state.
+    initial: Idle  # CRITICAL: Tells the engine which state to enter immediately upon start.
+    
+    states:  # A list defining the children of "Active"
+      - name: Idle  # DEFINITION: A state named "Idle"
+        transitions:  # LOGIC: A list of rules for leaving this state
+          - event: BUTTON_PRESSED  # TRIGGER: The specific signal string the engine listens for. These events will be sent by interpreter.queue('BUTTON_PRESSED') from the Python file.
+            target: Authenticating  # DESTINATION: The name of the next state to move to.
+            action: print(">> System Woke Up")  # SIDE EFFECT: Python code executed *during* the transition.
+
+      - name: Authenticating
+        transitions:
+          - event: PIN_ACCEPTED
+            target: Unlocked
+            action: print(">> PIN Verified. Solenoid clicked.")
+
+      - name: Unlocked
+        transitions:
+          - event: DOOR_PULLED
+            target: Open
+            action: print(">> Door is now physically open.")
+
+      - name: Open
+        # This state has no 'transitions' block.
+        # It is a "dead end" (or sink state).
+        # The system stays here forever because no events are defined to leave it.

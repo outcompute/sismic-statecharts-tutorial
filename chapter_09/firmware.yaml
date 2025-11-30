@@ -1,0 +1,47 @@
+statechart:
+  name: FirmwareUpdate
+  description: A long-running process that requires persistence.
+
+  preamble: |
+    progress = 0
+    version = "2.0.0"
+
+  root state:
+    name: Updater
+    initial: Idle
+
+    states:
+      - name: Idle
+        transitions:
+          - event: START_UPDATE
+            target: Downloading
+            action: print(">> [Update] Starting download...")
+
+      - name: Downloading
+        # Internal transition to increment progress
+        transitions:
+          - event: CHUNK_RECEIVED
+            guard: progress < 90
+            action: |
+              progress += 10
+              print(f">> [Update] Download Progress: {progress}%")
+
+          - event: CHUNK_RECEIVED
+            guard: progress >= 90
+            target: Installing
+            action: |
+              progress = 100
+              print(">> [Update] Download Complete. Verifying...")
+
+      - name: Installing
+        on entry: print(">> [Update] Installing firmware...")
+        transitions:
+          - target: Rebooting
+            guard: after(2)
+
+      - name: Rebooting
+        on entry: print(">> [Update] Rebooting system...")
+        transitions:
+          - target: Idle
+            guard: after(2)
+            action: print(">> [Update] System Online. Version 2.0.0 Active.")
